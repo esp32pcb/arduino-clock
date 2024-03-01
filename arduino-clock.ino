@@ -97,27 +97,69 @@ void displayTime(String timeStr) {
 }
 
 
-// Transition from winter time to summer time and back
+// Function to find the last Sunday of a given month of a given year
+int findLastSunday(int year, int month) {
+  // The day of the week for the first day of the month (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
+  // tm_wday from mktime will give us the day of the week for the 1st of the month
+  struct tm timeStruct = {};
+  timeStruct.tm_year = year - 1900; // Year since 1900
+  timeStruct.tm_mon = month - 1;    // Month of the year (0-11, January = 0)
+  timeStruct.tm_mday = 1;           // Day of the month (1-31)
+  timeStruct.tm_hour = 0;
+  timeStruct.tm_min = 0;
+  timeStruct.tm_sec = 0;
+  timeStruct.tm_isdst = -1;         // Not considering daylight saving time
+  mktime(&timeStruct);
+
+  // Find day of the week for the 1st of the month
+  int firstDay = timeStruct.tm_wday;
+
+  // Calculate the day of the last Sunday
+  int daysInMonth = 31 - ((month == 4 || month == 6 || month == 9 || month == 11) ? 1 : (month == 2 ? (3 - (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0))) : 0));
+  int day = daysInMonth - ((firstDay + daysInMonth - 1) % 7);
+  return day;
+}
+
 void adjustTimeZone() {
   time_t rawTime = timeClient.getEpochTime();
   setTime(rawTime);
-
+  
   int currentYear = year();
   int currentMonth = month();
   int currentDay = day();
   int currentWeekday = weekday();
-
-  int lastSunday = currentDay - currentWeekday + (currentWeekday == 1 ? -6 : 1);
-
-  long timeZoneOffset = 3600;
+  
+  Serial.println("CurrentYear:");
+  Serial.println(currentYear);
+  
+  Serial.println("CurrentMonth:");
+  Serial.println(currentMonth);
+  
+  Serial.println("CurrentDay:");
+  Serial.println(currentDay);
+  
+  Serial.println("CurrentWeekday:");
+  Serial.println(currentWeekday);
+  
+  
+  int lastSundayMarch = findLastSunday(currentYear, 3);
+  int lastSundayOctober = findLastSunday(currentYear, 10);
+  
+  Serial.println("lastSundayMarch:");
+  Serial.println(lastSundayMarch);
+  
+  Serial.println("lastSundayOctober:");
+  Serial.println(lastSundayOctober);
+  
+  long timeZoneOffset = 3600; // Default time zone offset for your location in seconds
   if (currentMonth > 3 && currentMonth < 10) {
-    timeZoneOffset += 3600;
-  } else if (currentMonth == 3 && currentDay >= lastSunday) {
-    timeZoneOffset += 3600;
-  } else if (currentMonth == 10 && currentDay < lastSunday) {
-    timeZoneOffset += 3600;
+      timeZoneOffset += 3600; // Add an hour for daylight saving time
+  } else if (currentMonth == 3 && currentDay >= lastSundayMarch) {
+      timeZoneOffset += 3600; // Add an hour for daylight saving time if past last Sunday of March
+  } else if (currentMonth == 10 && currentDay < lastSundayOctober) {
+      timeZoneOffset += 3600; // Still on daylight saving time if before last Sunday of October
   }
-
+  
   timeClient.setTimeOffset(timeZoneOffset);
 }
 
