@@ -1,0 +1,5 @@
+build/
+.env.test
+**/secrets.h
+CLAUDE.local.md
+docs/claude/.credentials
